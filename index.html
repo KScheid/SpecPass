@@ -571,6 +571,12 @@
       openSettings();
       alert("You've used your 3 demo generations! Add your API key or enable Owner Mode in settings to continue.");
     }
+    // If no key is set and the user typed a custom theme
+    if (!apiKey && !isOwner) {
+      if (theme.toLowerCase() !== "cyber tech minimalist") {
+        showToast("⚠️ Offline Mode: Using sample words. Enter an API key in ⚙️ for AI themes!");
+      }
+    }
 
     btn.disabled = false;
     btn.innerText = "✨ Generate Usernames";
@@ -617,15 +623,42 @@ Strict Constraint: Maximum ${maxLen} characters each.
 Output: Reply ONLY with the 5 usernames separated by commas. No quotes, no markdown, no bullets.`;
 
     if (provider === 'gemini') {
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-      });
-      const data = await res.json();
-      if (data.error) throw new Error(data.error.message);
-      return data.candidates[0].content.parts[0].text.split(/,|\n/).map(s => s.trim()).filter(Boolean);
+      // Auto-fallback chain for Google's active models
+      const models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash-latest'];
+      let lastError = null;
+
+      for (const model of models) {
+        try {
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+          });
+          const data = await res.json();
+
+          if (data.error) {
+            // If this specific model name is deprecated/not found, try the next one
+            if (data.error.code === 404 || data.error.message.includes('not found')) {
+              lastError = data.error.message;
+              continue;
+            }
+            throw new Error(data.error.message);
+          }
+
+          if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+            return data.candidates[0].content.parts[0].text
+              .split(/,|\n/)
+              .map(s => s.trim().replace(/^[-*\d.)\s]+/, '')) // Strips any accidental "1. " or "- " bullets
+              .filter(s => s.length > 0 && s.length <= maxLen + 4);
+          }
+        } catch (err) {
+          lastError = err.message;
+          if (!err.message.includes('not found')) throw err;
+        }
+      }
+      throw new Error(lastError || "Could not connect to any active Gemini model.");
     } else {
+      // OpenAI / Groq / OpenRouter Standard
       const endpoint = localStorage.getItem('specpass_endpoint') || "https://api.openai.com/v1";
       const res = await fetch(`${endpoint}/chat/completions`, {
         method: "POST",
@@ -637,7 +670,10 @@ Output: Reply ONLY with the 5 usernames separated by commas. No quotes, no markd
       });
       const data = await res.json();
       if (data.error) throw new Error(data.error.message);
-      return data.choices[0].message.content.split(/,|\n/).map(s => s.trim()).filter(Boolean);
+      return data.choices[0].message.content
+        .split(/,|\n/)
+        .map(s => s.trim().replace(/^[-*\d.)\s]+/, ''))
+        .filter(Boolean);
     }
   }
 
