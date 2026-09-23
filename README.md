@@ -20,7 +20,7 @@ Hosted 100% free and client-side on GitHub Pages.
 3. Commit and push the file.
 4. On GitHub, go to **Settings** → **Pages** (under Code and automation).
 5. Under **Branch**, select `main` (or `master`) and folder `/ (root)`, then click **Save**.
-6. Wait ~30 seconds, and your site is live at `[https://<your-username>.github.io/pickypass/](https://kscheid.github.io/specpass/)`!
+6. Wait ~30 seconds, and your site is live at `[https://kscheid.github.io/SpecPass/](https://kscheid.github.io/SpecPass/)`!
 
 ## 🔒 Security & Privacy
 
