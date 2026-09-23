@@ -1,97 +1,168 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SpecPass — Smart Credentials</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Dropbox zxcvbn Realistic Password Strength Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/zxcvbn/4.4.2/zxcvbn.js"></script>
+
   <style>
-    :root {
-      --bg: #0b0f19;
+    /* Theme Variables */
+    :root[data-theme="dark"] {
+      --bg: #090d16;
       --card-bg: #111827;
-      --card-border: #1f2937;
+      --card-border: #1f293d;
+      --input-bg: #070a12;
+      --text: #f3f4f6;
+      --text-muted: #94a3b8;
       --accent: #6366f1;
       --accent-hover: #4f46e5;
-      --accent-glow: rgba(99, 102, 241, 0.2);
-      --text: #f3f4f6;
-      --text-muted: #9ca3af;
+      --accent-glow: rgba(99, 102, 241, 0.25);
+      --meter-track: #1e293b;
+      --disabled-bg: #0d121f;
+    }
+
+    :root[data-theme="light"] {
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --card-border: #e2e8f0;
+      --input-bg: #f1f5f9;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --accent: #4f46e5;
+      --accent-hover: #4338ca;
+      --accent-glow: rgba(79, 70, 229, 0.15);
+      --meter-track: #e2e8f0;
+      --disabled-bg: #f8fafc;
+    }
+
+    :root {
       --danger: #ef4444;
       --warning: #f59e0b;
+      --info: #0284c7;
       --success: #10b981;
       --radius: 12px;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; transition: background-color 0.2s, border-color 0.2s; }
     body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 2.5rem 1rem; }
     .container { width: 100%; max-width: 620px; }
 
-    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
-    .brand { display: flex; align-items: center; gap: 0.75rem; }
-    .logo-icon { background: linear-gradient(135deg, var(--accent), #a855f7); border-radius: 10px; width: 38px; height: 38px; display: grid; place-items: center; font-size: 1.2rem; }
-    h1 { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.02em; }
-    .subtitle { color: var(--text-muted); font-size: 0.85rem; margin-top: 2px; }
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.75rem; }
+    .brand { display: flex; align-items: center; gap: 0.85rem; cursor: pointer; user-select: none; }
+    
+    /* Modern Shield Icon */
+    .logo-badge {
+      background: linear-gradient(135deg, var(--accent), #9333ea);
+      border-radius: 10px;
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+    .logo-badge svg { width: 22px; height: 22px; fill: none; stroke: #ffffff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
-    .btn-icon { background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text); border-radius: 8px; padding: 0.5rem 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; transition: 0.2s; }
-    .btn-icon:hover { border-color: var(--accent); background: #1a2234; }
+    h1 { font-size: 1.45rem; font-weight: 700; letter-spacing: -0.02em; }
+    .subtitle { color: var(--text-muted); font-size: 0.82rem; margin-top: 2px; }
+
+    .header-actions { display: flex; align-items: center; gap: 0.6rem; }
+    .btn-icon { background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text); border-radius: 8px; padding: 0.5rem 0.75rem; cursor: pointer; font-size: 0.85rem; display: flex; align-items: center; gap: 0.4rem; font-weight: 500; }
+    .btn-icon:hover { border-color: var(--accent); }
+
+    /* Theme 3-Way Segmented Control */
+    .theme-switch {
+      display: flex;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 2px;
+      gap: 2px;
+    }
+    .theme-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.35rem 0.55rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .theme-btn.active {
+      background: var(--accent);
+      color: #fff;
+    }
 
     /* Tabs */
-    .tabs { display: grid; grid-template-columns: 1fr 1fr; background: #151d30; border-radius: var(--radius); padding: 4px; margin-bottom: 1.5rem; border: 1px solid var(--card-border); }
-    .tab-btn { background: transparent; border: none; color: var(--text-muted); padding: 0.65rem; font-weight: 600; font-size: 0.9rem; border-radius: 8px; cursor: pointer; transition: 0.2s; }
-    .tab-btn.active { background: var(--card-bg); color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+    .tabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--input-bg); border-radius: var(--radius); padding: 4px; margin-bottom: 1.5rem; border: 1px solid var(--card-border); }
+    .tab-btn { background: transparent; border: none; color: var(--text-muted); padding: 0.65rem; font-weight: 600; font-size: 0.9rem; border-radius: 8px; cursor: pointer; }
+    .tab-btn.active { background: var(--card-bg); color: var(--text); box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
 
-    /* Card Panels */
-    .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 1.5rem; display: none; }
+    /* Card */
+    .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 1.5rem; display: none; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
     .card.active { display: block; }
 
-    /* Result Output Box */
-    .output-box { background: #070a12; border: 1px solid var(--card-border); border-radius: 10px; padding: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
-    .output-text { font-family: 'JetBrains Mono', monospace; font-size: 1.15rem; word-break: break-all; color: #a5f3fc; }
-    .output-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
-
-    /* Action Buttons */
-    .btn-action { background: #1e293b; border: 1px solid var(--card-border); color: var(--text); border-radius: 6px; padding: 0.45rem 0.75rem; cursor: pointer; font-size: 0.8rem; font-weight: 500; transition: 0.15s; }
-    .btn-action:hover { background: var(--accent); border-color: var(--accent); }
+    /* Result Output */
+    .output-box { background: var(--input-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+    .output-text { font-family: 'JetBrains Mono', monospace; font-size: 1.15rem; word-break: break-all; color: var(--accent); font-weight: 600; }
+    .output-actions { display: flex; gap: 0.4rem; flex-shrink: 0; }
+    .btn-action { background: var(--card-bg); border: 1px solid var(--card-border); color: var(--text); border-radius: 6px; padding: 0.45rem 0.7rem; cursor: pointer; font-size: 0.8rem; font-weight: 500; }
+    .btn-action:hover { background: var(--accent); border-color: var(--accent); color: white; }
 
     /* Security Meter */
-    .meter-container { background: #070a12; border-radius: 8px; padding: 0.85rem; margin-bottom: 1.5rem; border: 1px solid var(--card-border); font-size: 0.82rem; }
-    .meter-bar { height: 5px; background: #263248; border-radius: 3px; overflow: hidden; margin-bottom: 0.65rem; }
+    .meter-container { background: var(--input-bg); border-radius: 8px; padding: 0.85rem; margin-bottom: 1.5rem; border: 1px solid var(--card-border); font-size: 0.82rem; }
+    .meter-bar { height: 6px; background: var(--meter-track); border-radius: 3px; overflow: hidden; margin-bottom: 0.65rem; }
     .meter-fill { height: 100%; width: 0%; transition: width 0.3s, background-color 0.3s; }
-    .meter-details { display: flex; justify-content: space-between; color: var(--text-muted); }
+    .meter-details { display: flex; justify-content: space-between; color: var(--text-muted); font-weight: 500; }
     .hibp-status { margin-top: 0.5rem; display: flex; align-items: center; gap: 0.4rem; font-weight: 500; font-size: 0.8rem; }
 
     /* Form Controls */
     .control-group { margin-bottom: 1.25rem; }
-    label { display: block; font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.5rem; }
-    .slider-row { display: flex; align-items: center; gap: 1rem; }
+    label { display: block; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); margin-bottom: 0.5rem; }
+    
+    .length-row { display: flex; align-items: center; gap: 1rem; }
     input[type="range"] { flex: 1; accent-color: var(--accent); cursor: pointer; }
-    .slider-val { font-family: 'JetBrains Mono', monospace; font-size: 1rem; font-weight: 600; width: 28px; text-align: right; }
+    .number-input { width: 62px; background: var(--input-bg); border: 1px solid var(--card-border); border-radius: 6px; padding: 0.4rem; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 0.95rem; font-weight: 600; text-align: center; outline: none; }
+    .number-input:focus { border-color: var(--accent); }
 
     .checkboxes { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; margin-bottom: 1.25rem; }
-    .check-label { display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; cursor: pointer; text-transform: none; color: var(--text); }
+    .check-label { display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; cursor: pointer; color: var(--text); }
     .check-label input { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
 
-    .input-text { width: 100%; background: #070a12; border: 1px solid var(--card-border); border-radius: 8px; padding: 0.65rem 0.85rem; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; outline: none; transition: border-color 0.2s; }
+    .input-text { width: 100%; background: var(--input-bg); border: 1px solid var(--card-border); border-radius: 8px; padding: 0.65rem 0.85rem; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; outline: none; }
     .input-text:focus { border-color: var(--accent); }
+    
+    /* Disabled Whitelist state */
+    .input-text:disabled {
+      background: var(--disabled-bg);
+      color: var(--text-muted);
+      opacity: 0.45;
+      cursor: not-allowed;
+      border-color: var(--card-border);
+    }
+
     .hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.4rem; }
 
-    /* Primary Generate Button */
-    .btn-generate { width: 100%; background: var(--accent); color: white; border: none; border-radius: 10px; padding: 0.85rem; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 0.5rem; display: flex; justify-content: center; align-items: center; gap: 0.5rem; }
+    .btn-generate { width: 100%; background: var(--accent); color: white; border: none; border-radius: 10px; padding: 0.85rem; font-size: 0.95rem; font-weight: 600; cursor: pointer; margin-top: 0.5rem; display: flex; justify-content: center; align-items: center; gap: 0.5rem; }
     .btn-generate:hover { background: var(--accent-hover); box-shadow: 0 4px 15px var(--accent-glow); }
 
-    /* Username Results List */
+    /* Usernames */
     .username-list { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
-    .username-item { background: #070a12; border: 1px solid var(--card-border); border-radius: 8px; padding: 0.6rem 0.85rem; display: flex; justify-content: space-between; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 0.95rem; }
+    .username-item { background: var(--input-bg); border: 1px solid var(--card-border); border-radius: 8px; padding: 0.6rem 0.85rem; display: flex; justify-content: space-between; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 0.95rem; }
 
     /* Modal */
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; place-items: center; padding: 1rem; z-index: 100; }
-    .modal { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); width: 100%; max-width: 450px; padding: 1.5rem; }
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: none; place-items: center; padding: 1rem; z-index: 100; backdrop-filter: blur(3px); }
+    .modal { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); width: 100%; max-width: 440px; padding: 1.5rem; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-    .modal-close { background: none; border: none; color: var(--text-muted); font-size: 1.25rem; cursor: pointer; }
+    .modal-close { background: none; border: none; color: var(--text-muted); font-size: 1.3rem; cursor: pointer; }
 
-    /* Toast */
-    .toast { position: fixed; bottom: 20px; background: #1e293b; border: 1px solid var(--accent); color: #fff; padding: 0.6rem 1.2rem; border-radius: 8px; font-size: 0.85rem; opacity: 0; transform: translateY(10px); transition: 0.3s; pointer-events: none; }
+    .toast { position: fixed; bottom: 20px; background: var(--card-bg); border: 1px solid var(--accent); color: var(--text); padding: 0.6rem 1.2rem; border-radius: 8px; font-size: 0.85rem; opacity: 0; transform: translateY(10px); transition: 0.3s; pointer-events: none; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
     .toast.show { opacity: 1; transform: translateY(0); }
   </style>
 </head>
@@ -99,14 +170,28 @@
 
 <div class="container">
   <header>
-    <div class="brand">
-      <div class="logo-icon">🔑</div>
+    <div class="brand" id="brandLogo" title="Click 5 times for Developer Bypass">
+      <div class="logo-badge">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          <path d="M9 12l2 2 4-4"/>
+        </svg>
+      </div>
       <div>
-        <h1>PickyPass</h1>
-        <div class="subtitle">Custom credential generator for picky rules</div>
+        <h1>SpecPass</h1>
+        <div class="subtitle">Smart credentials for strict site requirements</div>
       </div>
     </div>
-    <button class="btn-icon" id="openSettingsBtn">⚙️ AI Settings</button>
+    
+    <div class="header-actions">
+      <!-- 3-Way Theme Switcher -->
+      <div class="theme-switch">
+        <button class="theme-btn" id="themeLight" onclick="setTheme('light')">Light</button>
+        <button class="theme-btn" id="themeSystem" onclick="setTheme('system')">Auto</button>
+        <button class="theme-btn" id="themeDark" onclick="setTheme('dark')">Dark</button>
+      </div>
+      <button class="btn-icon" onclick="openSettings()">⚙️</button>
+    </div>
   </header>
 
   <!-- Navigation Tabs -->
@@ -125,40 +210,40 @@
       </div>
     </div>
 
-    <!-- Security & Breach Meter -->
+    <!-- Security & Breach Meter (zxcvbn + HIBP) -->
     <div class="meter-container">
       <div class="meter-bar"><div class="meter-fill" id="meterFill"></div></div>
       <div class="meter-details">
-        <span id="strengthText">Calculating...</span>
-        <span id="crackTime">Crack Time: ~</span>
+        <span id="strengthText">Analyzing...</span>
+        <span id="crackTime">Offline crack time: ~</span>
       </div>
       <div class="hibp-status" id="hibpStatus">
         <span>🔍 Checking HaveIBeenPwned...</span>
       </div>
     </div>
 
-    <!-- Length Slider -->
+    <!-- Length Slider & Direct Number Input -->
     <div class="control-group">
       <label>Password Length</label>
-      <div class="slider-row">
-        <input type="range" id="lengthSlider" min="6" max="64" value="16" oninput="updateLength(this.value)">
-        <span class="slider-val" id="lengthVal">16</span>
+      <div class="length-row">
+        <input type="range" id="lengthSlider" min="6" max="64" value="16" oninput="syncLength('slider')">
+        <input type="number" id="lengthInput" class="number-input" min="6" max="64" value="16" oninput="syncLength('number')">
       </div>
     </div>
 
-    <!-- Standard Checkboxes -->
+    <!-- Rule Checkboxes -->
     <div class="checkboxes">
       <label class="check-label"><input type="checkbox" id="incUpper" checked onchange="generatePassword()"> Uppercase (A-Z)</label>
       <label class="check-label"><input type="checkbox" id="incLower" checked onchange="generatePassword()"> Lowercase (a-z)</label>
       <label class="check-label"><input type="checkbox" id="incNumbers" checked onchange="generatePassword()"> Numbers (0-9)</label>
-      <label class="check-label"><input type="checkbox" id="incSymbols" checked onchange="generatePassword()"> Include Symbols</label>
+      <label class="check-label"><input type="checkbox" id="incSymbols" checked onchange="toggleSymbols()"> Include Symbols</label>
     </div>
 
-    <!-- Picky Symbols Whitelist Input -->
+    <!-- Picky Symbols Whitelist Input (Disabled when unchecked) -->
     <div class="control-group">
-      <label>Allowed Symbols (Editable Whitelist)</label>
+      <label id="symbolLabel">Allowed Symbols Whitelist</label>
       <input type="text" class="input-text" id="allowedSymbols" value="!@#$%^&*()_+-=[]{}|;:,.<>?" oninput="generatePassword()">
-      <div class="hint">Paste only the characters your target website permits.</div>
+      <div class="hint">Paste only the symbols your site permits. Leave checked to apply.</div>
     </div>
 
     <button class="btn-generate" onclick="generatePassword()">Generate Fresh Password</button>
@@ -167,51 +252,50 @@
   <!-- AI USERNAME STUDIO PANEL -->
   <div class="card" id="usernamesCard">
     <div class="control-group">
-      <label>Theme or Vibe</label>
+      <label>Theme or Concept</label>
       <input type="text" class="input-text" id="userTheme" placeholder="e.g., Cyberpunk Hacker, Coffee Addict, Minimal Dev">
     </div>
 
     <div class="control-group">
-      <label>Style & Formatting</label>
+      <label>Format & Style</label>
       <select class="input-text" id="userStyle" style="cursor: pointer;">
-        <option value="camelCase">camelCase (e.g. byteHunter)</option>
-        <option value="single">Single Word (e.g. Cypheron)</option>
-        <option value="hyphen">Hyphenated (e.g. neon-phantom)</option>
-        <option value="numbers">With Numbers (e.g. stealth_404)</option>
+        <option value="camelCase">camelCase (e.g., cipherGhost)</option>
+        <option value="single">Single Word (e.g., Cypheron)</option>
+        <option value="hyphen">Hyphenated (e.g., cipher-ghost)</option>
+        <option value="numbers">With Numbers (e.g., cipherGhost_42)</option>
       </select>
     </div>
 
     <div class="control-group">
       <label>Max Character Length</label>
-      <div class="slider-row">
-        <input type="range" id="userLengthSlider" min="5" max="25" value="14" oninput="document.getElementById('userLengthVal').innerText = this.value">
-        <span class="slider-val" id="userLengthVal">14</span>
+      <div class="length-row">
+        <input type="range" id="userLengthSlider" min="5" max="25" value="14" oninput="document.getElementById('userLengthInput').value = this.value">
+        <input type="number" id="userLengthInput" class="number-input" min="5" max="25" value="14" oninput="document.getElementById('userLengthSlider').value = this.value">
       </div>
     </div>
 
     <button class="btn-generate" id="generateUsernamesBtn" onclick="generateUsernames()">✨ Generate Usernames</button>
 
-    <div class="username-list" id="usernameResults">
-      <!-- Generated Handles Injected Here -->
-    </div>
+    <div class="username-list" id="usernameResults"></div>
   </div>
 </div>
 
-<!-- SETTINGS MODAL (BYOK) -->
+<!-- SETTINGS MODAL -->
 <div class="modal-overlay" id="settingsModal">
   <div class="modal">
     <div class="modal-header">
-      <h3>AI Provider Settings</h3>
+      <h3>AI Provider & Preferences</h3>
       <button class="modal-close" onclick="closeSettings()">&times;</button>
     </div>
+    
     <div class="hint" style="margin-bottom: 1rem;">
-      Keys stay inside your browser's local storage and are never uploaded to any server.
+      Adding your own API key completely unlocks <strong>unlimited generations</strong>. Keys remain stored on your machine.
     </div>
 
     <div class="control-group">
       <label>Provider</label>
       <select class="input-text" id="apiProvider" onchange="updateProviderHint()">
-        <option value="gemini">Google Gemini (Recommended / Free)</option>
+        <option value="gemini">Google Gemini (Free tier available)</option>
         <option value="openai">OpenAI (ChatGPT)</option>
         <option value="custom">OpenAI-Compatible (Groq / OpenRouter)</option>
       </select>
@@ -227,6 +311,14 @@
       <input type="password" class="input-text" id="apiKey" placeholder="Paste your API key here">
     </div>
 
+    <!-- Owner Mode Bypass -->
+    <div class="control-group" style="border-top: 1px solid var(--card-border); padding-top: 1rem;">
+      <label class="check-label">
+        <input type="checkbox" id="ownerBypassCheck"> 
+        <span>Owner / Admin Mode (Bypass Rate Limits)</span>
+      </label>
+    </div>
+
     <button class="btn-generate" onclick="saveSettings()">Save & Close</button>
   </div>
 </div>
@@ -234,7 +326,32 @@
 <div class="toast" id="toast">Copied to clipboard!</div>
 
 <script>
-  // --- TABS & NAVIGATION ---
+  // --- THEME MANAGEMENT (Light, Dark, System) ---
+  function applyTheme(theme) {
+    document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+    
+    let resolved = theme;
+    if (theme === 'system') {
+      document.getElementById('themeSystem').classList.add('active');
+      resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    } else if (theme === 'light') {
+      document.getElementById('themeLight').classList.add('active');
+    } else {
+      document.getElementById('themeDark').classList.add('active');
+    }
+
+    document.documentElement.setAttribute('data-theme', resolved);
+    localStorage.setItem('specpass_theme', theme);
+  }
+
+  function setTheme(t) { applyTheme(t); }
+
+  // Listen to system changes
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (localStorage.getItem('specpass_theme') === 'system') applyTheme('system');
+  });
+
+  // --- TAB NAVIGATION ---
   function switchTab(tab) {
     document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.card').forEach(card => card.classList.remove('active'));
@@ -247,12 +364,40 @@
     }
   }
 
-  // --- PASSWORD GENERATION LOGIC ---
-  function updateLength(val) {
-    document.getElementById('lengthVal').innerText = val;
+  // --- SYNC LENGTH SLIDER & NUMBER BOX ---
+  function syncLength(source) {
+    const slider = document.getElementById('lengthSlider');
+    const input = document.getElementById('lengthInput');
+    if (source === 'slider') {
+      input.value = slider.value;
+    } else {
+      let val = parseInt(input.value) || 16;
+      if (val < 6) val = 6;
+      if (val > 64) val = 64;
+      input.value = val;
+      slider.value = val;
+    }
     generatePassword();
   }
 
+  // --- SYMBOLS TOGGLE (GREY OUT) ---
+  function toggleSymbols() {
+    const checkbox = document.getElementById('incSymbols');
+    const symbolInput = document.getElementById('allowedSymbols');
+    const symbolLabel = document.getElementById('symbolLabel');
+
+    if (!checkbox.checked) {
+      symbolInput.disabled = true;
+      symbolLabel.style.color = "var(--text-muted)";
+      symbolLabel.style.opacity = "0.5";
+    } else {
+      symbolInput.disabled = false;
+      symbolLabel.style.opacity = "1";
+    }
+    generatePassword();
+  }
+
+  // --- PASSWORD GENERATOR ---
   function getRandomChar(str) {
     const array = new Uint32Array(1);
     window.crypto.getRandomValues(array);
@@ -293,7 +438,7 @@
       password.push(getRandomChar(pool));
     }
 
-    // Fisher-Yates Shuffle with crypto randomness
+    // Cryptographic Fisher-Yates Shuffle
     for (let i = password.length - 1; i > 0; i--) {
       const array = new Uint32Array(1);
       window.crypto.getRandomValues(array);
@@ -304,58 +449,48 @@
     const finalPass = password.join('');
     document.getElementById('passOutput').innerText = finalPass;
 
-    calculateEntropy(finalPass, pool.length);
+    evaluateStrengthWithZxcvbn(finalPass);
 
-    // Debounce HIBP request to prevent rate-limiting on slider drags
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => checkHIBP(finalPass), 400);
   }
 
-  // --- ENTROPY & CRACK TIME VISUALIZER ---
-  function calculateEntropy(password, poolSize) {
-    const entropy = password.length * Math.log2(poolSize);
+  // --- REALISTIC CRACK ESTIMATOR (DROPBOX ZXCVBN) ---
+  function evaluateStrengthWithZxcvbn(password) {
     const fill = document.getElementById('meterFill');
     const strengthText = document.getElementById('strengthText');
     const crackTime = document.getElementById('crackTime');
 
-    // Assumptions: Modern offline GPU cluster ~ 100 billion (1e11) guesses/sec
-    const guesses = Math.pow(2, entropy) / 2;
-    const seconds = guesses / 1e11;
+    if (typeof zxcvbn === "function") {
+      const result = zxcvbn(password);
+      // Realistic offline fast hashing cluster estimation
+      const displayTime = result.crack_times_display.offline_fast_hashing_1e10_per_second;
+      crackTime.innerText = `Offline attack time: ~${displayTime}`;
 
-    let timeFormatted = "";
-    if (seconds < 1) timeFormatted = "Instantly";
-    else if (seconds < 60) timeFormatted = `${Math.round(seconds)} seconds`;
-    else if (seconds < 3600) timeFormatted = `${Math.round(seconds / 60)} minutes`;
-    else if (seconds < 86400) timeFormatted = `${Math.round(seconds / 3600)} hours`;
-    else if (seconds < 31536000) timeFormatted = `${Math.round(seconds / 86400)} days`;
-    else if (seconds < 31536000 * 1000) timeFormatted = `${Math.round(seconds / 31536000)} years`;
-    else if (seconds < 31536000 * 1e6) timeFormatted = `${Math.round(seconds / (31536000 * 1000))}k years`;
-    else timeFormatted = `${(seconds / (31536000 * 1e9)).toFixed(1)} billion years`;
+      const score = result.score; // 0 to 4
+      const widths = ["20%", "40%", "65%", "85%", "100%"];
+      const colors = ["var(--danger)", "var(--danger)", "var(--warning)", "var(--info)", "var(--success)"];
+      const labels = ["Very Weak", "Weak", "Fair", "Strong", "Uncrackable"];
 
-    crackTime.innerText = `Crack Time: ~${timeFormatted}`;
-
-    if (entropy < 40) {
-      fill.style.width = "25%"; fill.style.backgroundColor = "var(--danger)";
-      strengthText.innerText = "Weak"; strengthText.style.color = "var(--danger)";
-    } else if (entropy < 65) {
-      fill.style.width = "55%"; fill.style.backgroundColor = "var(--warning)";
-      strengthText.innerText = "Moderate"; strengthText.style.color = "var(--warning)";
-    } else if (entropy < 85) {
-      fill.style.width = "80%"; fill.style.backgroundColor = "#38bdf8";
-      strengthText.innerText = "Strong"; strengthText.style.color = "#38bdf8";
+      fill.style.width = widths[score];
+      fill.style.backgroundColor = colors[score];
+      strengthText.innerText = labels[score];
+      strengthText.style.color = colors[score];
     } else {
-      fill.style.width = "100%"; fill.style.backgroundColor = "var(--success)";
-      strengthText.innerText = "Bulletproof"; strengthText.style.color = "var(--success)";
+      // Fallback
+      crackTime.innerText = "Crack time: Strong";
+      fill.style.width = "100%";
+      fill.style.backgroundColor = "var(--success)";
+      strengthText.innerText = "Strong";
     }
   }
 
-  // --- HAVE I BEEN PWNED (k-Anonymity API) ---
+  // --- HAVE I BEEN PWNED API (k-Anonymity) ---
   async function checkHIBP(password) {
     const status = document.getElementById('hibpStatus');
     status.innerHTML = `<span style="color: var(--text-muted)">🔍 Checking HaveIBeenPwned...</span>`;
 
     try {
-      // 1. SHA-1 hash via browser Web Crypto
       const encoder = new TextEncoder();
       const data = encoder.encode(password);
       const hashBuffer = await crypto.subtle.digest('SHA-1', data);
@@ -365,12 +500,10 @@
       const prefix = hashHex.substring(0, 5);
       const suffix = hashHex.substring(5);
 
-      // 2. Query HIBP range API
       const response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`);
       if (!response.ok) throw new Error();
       const text = await response.text();
 
-      // 3. Search response lines for suffix match
       const lines = text.split('\n');
       let breachCount = 0;
       for (const line of lines) {
@@ -382,77 +515,106 @@
       }
 
       if (breachCount > 0) {
-        status.innerHTML = `<span style="color: var(--danger)">⚠️ Found in leaks (${breachCount.toLocaleString()} times)!</span>`;
+        status.innerHTML = `<span style="color: var(--danger)">⚠️ Found in leaks (${breachCount.toLocaleString()} times)! Pick another.</span>`;
       } else {
         status.innerHTML = `<span style="color: var(--success)">✓ Never seen in any known data breach</span>`;
       }
     } catch {
-      status.innerHTML = `<span style="color: var(--text-muted)">ℹ️ HIBP check offline or blocked</span>`;
+      status.innerHTML = `<span style="color: var(--text-muted)">ℹ️ HIBP check offline</span>`;
     }
   }
 
-  // --- USERNAME STUDIO (AI & LOCAL FALLBACK) ---
-  let freeGenerations = parseInt(localStorage.getItem('pickypass_free_runs') || '3');
+  // --- USERNAME GENERATOR (WITH FIXED STYLES & OWNER BYPASS) ---
+  let clickCount = 0;
+  document.getElementById('brandLogo').addEventListener('click', () => {
+    clickCount++;
+    if (clickCount >= 5) {
+      localStorage.setItem('specpass_owner_unlimited', 'true');
+      document.getElementById('ownerBypassCheck').checked = true;
+      showToast("👑 Owner Mode Activated: Unlimited Generations!");
+      clickCount = 0;
+    }
+  });
 
   async function generateUsernames() {
-    const theme = document.getElementById('userTheme').value.trim() || "Cool Creative Tech";
+    const theme = document.getElementById('userTheme').value.trim() || "Cyber Tech Minimalist";
     const style = document.getElementById('userStyle').value;
-    const maxLen = document.getElementById('userLengthSlider').value;
-    const apiKey = localStorage.getItem('pickypass_api_key');
-    const provider = localStorage.getItem('pickypass_provider') || 'gemini';
+    const maxLen = parseInt(document.getElementById('userLengthSlider').value);
+    const apiKey = localStorage.getItem('specpass_api_key');
+    const provider = localStorage.getItem('specpass_provider') || 'gemini';
+    const isOwner = localStorage.getItem('specpass_owner_unlimited') === 'true';
     const list = document.getElementById('usernameResults');
     const btn = document.getElementById('generateUsernamesBtn');
+
+    let freeRuns = parseInt(localStorage.getItem('specpass_free_runs') || '3');
 
     btn.disabled = true;
     btn.innerText = "Forging Usernames...";
     list.innerHTML = "";
 
-    // If user provided their own key, make real API request
+    // 1. If User has entered an API key OR is in Owner Mode -> Unlimited direct AI/advanced generation
     if (apiKey) {
       try {
         const names = await fetchAIUsernames(provider, apiKey, theme, style, maxLen);
         renderUsernames(names);
       } catch (err) {
         alert("API Error: " + err.message);
-        fallbackLocalUsernames(theme, maxLen);
+        renderUsernames(generateAlgorithmicUsernames(theme, style, maxLen));
       }
+    } else if (isOwner || freeRuns > 0) {
+      if (!isOwner) {
+        freeRuns--;
+        localStorage.setItem('specpass_free_runs', freeRuns);
+      }
+      renderUsernames(generateAlgorithmicUsernames(theme, style, maxLen));
     } else {
-      // Free quota logic
-      if (freeGenerations > 0) {
-        freeGenerations--;
-        localStorage.setItem('pickypass_free_runs', freeGenerations);
-        btn.innerText = `✨ Generate Usernames (${freeGenerations} free left)`;
-        fallbackLocalUsernames(theme, maxLen);
-      } else {
-        openSettings();
-        alert("You've used your demo generations! Enter your free Gemini or OpenAI key to unlock unlimited generations.");
-      }
+      openSettings();
+      alert("You've used your 3 demo generations! Add your API key or enable Owner Mode in settings to continue.");
     }
 
     btn.disabled = false;
-    if (!apiKey && freeGenerations === 0) {
-      btn.innerText = "⚙️ Add API Key to Continue";
-    } else {
-      btn.innerText = "✨ Generate Usernames";
-    }
+    btn.innerText = "✨ Generate Usernames";
   }
 
-  function fallbackLocalUsernames(theme, maxLen) {
-    const prefixes = ["Zero", "Hyper", "Nova", "Apex", "Echo", "Aero", "Vortex", "Byte", "Pixel", "Shadow"];
-    const nouns = ["Shift", "Runner", "Ghost", "Forge", "Drift", "Pulse", "Wanderer", "Sync", "Link", "Raven"];
+  // Algorithm that strictly respects the format requested
+  function generateAlgorithmicUsernames(theme, style, maxLen) {
+    const wordsA = ["Cipher", "Hyper", "Nova", "Apex", "Echo", "Aero", "Vortex", "Byte", "Pixel", "Shadow", "Quantum", "Orbit", "Flux", "Nexus"];
+    const wordsB = ["Ghost", "Runner", "Forge", "Drift", "Pulse", "Wanderer", "Sync", "Link", "Raven", "Spark", "Core", "Strider", "Hunter", "Weaver"];
+    const singles = ["Cypheron", "Novacore", "Vortidian", "Aeroform", "Spectrix", "Dynastyx", "Syncline", "Nyxblade", "Apexium", "Zenthor"];
+
     const results = [];
 
     for (let i = 0; i < 5; i++) {
-      const p = prefixes[Math.floor(Math.random() * prefixes.length)];
-      const n = nouns[Math.floor(Math.random() * nouns.length)];
-      let combined = (p + n).slice(0, maxLen);
-      results.push(combined);
+      const a = wordsA[Math.floor(Math.random() * wordsA.length)];
+      const b = wordsB[Math.floor(Math.random() * wordsB.length)];
+      let handle = "";
+
+      if (style === 'single') {
+        handle = singles[Math.floor(Math.random() * singles.length)];
+      } else if (style === 'camelCase') {
+        handle = a.toLowerCase() + b.charAt(0).toUpperCase() + b.slice(1).toLowerCase();
+      } else if (style === 'hyphen') {
+        handle = a.toLowerCase() + "-" + b.toLowerCase();
+      } else if (style === 'numbers') {
+        const randNum = Math.floor(Math.random() * 90) + 10;
+        const separator = Math.random() > 0.5 ? "_" : "";
+        handle = a.toLowerCase() + separator + b.toLowerCase() + randNum;
+      }
+
+      // Respect strict maximum length
+      if (handle.length > maxLen) {
+        handle = handle.slice(0, maxLen);
+      }
+      results.push(handle);
     }
-    renderUsernames(results);
+    return results;
   }
 
   async function fetchAIUsernames(provider, key, theme, style, maxLen) {
-    const prompt = `Generate exactly 5 creative, unique usernames based on the theme "${theme}". Style format: ${style}. Maximum character length per username: ${maxLen}. Reply ONLY with the 5 usernames separated by commas. No numbers prefixes, no markdown bullets.`;
+    const prompt = `Generate exactly 5 creative usernames. Theme: "${theme}". 
+Formatting Rule: Strict ${style} (single word, camelCase, hyphenated, or with numbers as requested). 
+Strict Constraint: Maximum ${maxLen} characters each.
+Output: Reply ONLY with the 5 usernames separated by commas. No quotes, no markdown, no bullets.`;
 
     if (provider === 'gemini') {
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
@@ -464,8 +626,7 @@
       if (data.error) throw new Error(data.error.message);
       return data.candidates[0].content.parts[0].text.split(/,|\n/).map(s => s.trim()).filter(Boolean);
     } else {
-      // OpenAI / Compatible Standard
-      const endpoint = localStorage.getItem('pickypass_endpoint') || "https://api.openai.com/v1";
+      const endpoint = localStorage.getItem('specpass_endpoint') || "https://api.openai.com/v1";
       const res = await fetch(`${endpoint}/chat/completions`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${key}` },
@@ -491,15 +652,14 @@
     });
   }
 
-  // --- SETTINGS MODAL & STORAGE ---
+  // --- SETTINGS MODAL ---
   const modal = document.getElementById('settingsModal');
-  document.getElementById('openSettingsBtn').onclick = () => openSettings();
-
   function openSettings() {
     modal.style.display = 'grid';
-    document.getElementById('apiKey').value = localStorage.getItem('pickypass_api_key') || '';
-    document.getElementById('apiProvider').value = localStorage.getItem('pickypass_provider') || 'gemini';
-    document.getElementById('apiEndpoint').value = localStorage.getItem('pickypass_endpoint') || '';
+    document.getElementById('apiKey').value = localStorage.getItem('specpass_api_key') || '';
+    document.getElementById('apiProvider').value = localStorage.getItem('specpass_provider') || 'gemini';
+    document.getElementById('apiEndpoint').value = localStorage.getItem('specpass_endpoint') || '';
+    document.getElementById('ownerBypassCheck').checked = localStorage.getItem('specpass_owner_unlimited') === 'true';
     updateProviderHint();
   }
 
@@ -511,33 +671,32 @@
   }
 
   function saveSettings() {
-    localStorage.setItem('pickypass_api_key', document.getElementById('apiKey').value.trim());
-    localStorage.setItem('pickypass_provider', document.getElementById('apiProvider').value);
-    localStorage.setItem('pickypass_endpoint', document.getElementById('apiEndpoint').value.trim());
+    localStorage.setItem('specpass_api_key', document.getElementById('apiKey').value.trim());
+    localStorage.setItem('specpass_provider', document.getElementById('apiProvider').value);
+    localStorage.setItem('specpass_endpoint', document.getElementById('apiEndpoint').value.trim());
+    localStorage.setItem('specpass_owner_unlimited', document.getElementById('ownerBypassCheck').checked ? 'true' : 'false');
     closeSettings();
-    showToast("Settings saved locally!");
+    showToast("Preferences saved!");
   }
 
-  // --- UTILITIES ---
-  function copyValue(elementId) {
-    const text = document.getElementById(elementId).innerText;
-    navigator.clipboard.writeText(text);
+  // --- CLIPBOARD & TOAST ---
+  function copyValue(id) {
+    navigator.clipboard.writeText(document.getElementById(id).innerText);
     showToast("Copied to clipboard!");
   }
-
   function copyDirect(text) {
     navigator.clipboard.writeText(text);
     showToast(`Copied "${text}"!`);
   }
-
   function showToast(msg) {
-    const toast = document.getElementById('toast');
-    toast.innerText = msg;
-    toast.classList.add('show');
-    setTimeout(() => toast.classList.remove('show'), 2000);
+    const t = document.getElementById('toast');
+    t.innerText = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
   }
 
-  // Initialize on load
+  // Initialize
+  applyTheme(localStorage.getItem('specpass_theme') || 'system');
   generatePassword();
 </script>
 </body>
